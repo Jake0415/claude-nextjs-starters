@@ -17,6 +17,16 @@
     "shadcn": {
       "command": "npx",
       "args": ["shadcn@latest", "mcp"]
+    },
+    "shrimp-task-manager": {
+      "command": "node",
+      "args": ["C:/claude-code/mcp-shrimp-task-manager/dist/index.js"],
+      "env": {
+        "DATA_DIR": "C:/claude-code/MHSSO/shrimp_data",
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "true",
+        "WEB_PORT": "3800"
+      }
     }
   }
 }

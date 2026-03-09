@@ -15,9 +15,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'NextJS Starter - 모던 웹 스타터킷',
-  description:
-    'Next.js 15, TypeScript, TailwindCSS, ShadcnUI로 구축된 프로덕션 준비가 완료된 웹 애플리케이션 스타터킷',
+  title: 'MHSSO AI - SSO 인증 서버',
+  description: 'Authorization Code Flow 기반 SSO(Single Sign-On) 인증 서버',
 }
 
 export default function RootLayout({

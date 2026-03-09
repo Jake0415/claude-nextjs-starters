@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  hashedPassword String         @map("hashed_password")
+  role           String         @default("USER") // SUPER_ADMIN, ADMIN, USER
+  isActive       Boolean        @default(true) @map("is_active")
+  createdById    String?        @map("created_by_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  lastLoginAt    DateTime?      @map("last_login_at")
+  createdBy      User?          @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  createdUsers   User[]         @relation("CreatedByAdmin")
+  refreshTokens  RefreshToken[]
+  ssoSessions    SsoSession[]
+  loginLogs      LoginLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model SsoSession {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sso_sessions")
+}
+
+model AuthorizationCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  userId      String   @map("user_id")
+  redirectUrl String   @map("redirect_url")
+  expiresAt   DateTime @map("expires_at")
+  isUsed      Boolean  @default(false) @map("is_used")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([code])
+  @@map("authorization_codes")
+}
+
+model AllowedRedirect {
+  id        String   @id @default(cuid())
+  name      String
+  url       String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("allowed_redirects")
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  email     String
+  action    String // LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT
+  appUrl    String?  @map("app_url")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("login_logs")
+}
