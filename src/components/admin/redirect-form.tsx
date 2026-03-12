@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import {
   allowedRedirectSchema,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { apiPost } from '@/lib/api/client'
 
 interface RedirectFormProps {
   onSuccess?: () => void
@@ -32,11 +34,15 @@ export function RedirectForm({ onSuccess }: RedirectFormProps) {
     },
   })
 
-  const onSubmit = (data: AllowedRedirectInput) => {
-    // Phase 6에서 API 연동 예정
-    console.log('허용 URL 등록 데이터:', data)
-    form.reset()
-    onSuccess?.()
+  const onSubmit = async (data: AllowedRedirectInput) => {
+    const res = await apiPost('/api/admin/redirects', data)
+    if (res.success) {
+      toast.success('URL이 등록되었습니다.')
+      form.reset()
+      onSuccess?.()
+    } else {
+      toast.error(res.error || 'URL 등록에 실패했습니다.')
+    }
   }
 
   return (

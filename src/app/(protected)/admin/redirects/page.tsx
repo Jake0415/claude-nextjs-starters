@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -25,45 +25,50 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus, ExternalLink } from 'lucide-react'
+import { Plus, ExternalLink, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { RedirectForm } from '@/components/admin/redirect-form'
+import { apiGet, apiDelete } from '@/lib/api/client'
 
-// 더미 허용 URL 목록
-const redirects = [
-  {
-    id: '1',
-    name: 'HR 시스템',
-    url: 'https://hr.company.com/callback',
-    createdAt: '2026-03-01',
-  },
-  {
-    id: '2',
-    name: '프로젝트 관리',
-    url: 'https://pm.company.com/auth/callback',
-    createdAt: '2026-03-02',
-  },
-  {
-    id: '3',
-    name: 'CRM',
-    url: 'https://crm.company.com/sso/callback',
-    createdAt: '2026-03-03',
-  },
-  {
-    id: '4',
-    name: '개발 환경',
-    url: 'http://localhost:3001/callback',
-    createdAt: '2026-03-04',
-  },
-  {
-    id: '5',
-    name: '사내 위키',
-    url: 'https://wiki.company.com/auth',
-    createdAt: '2026-03-05',
-  },
-]
+interface RedirectData {
+  id: string
+  name: string
+  url: string
+  createdAt: string
+}
 
 export default function RedirectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [redirects, setRedirects] = useState<RedirectData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchRedirects = useCallback(async () => {
+    const res = await apiGet<RedirectData[]>('/api/admin/redirects')
+    if (res.success && res.data) setRedirects(res.data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchRedirects()
+  }, [fetchRedirects])
+
+  const handleDelete = async (id: string) => {
+    const res = await apiDelete(`/api/admin/redirects?id=${id}`)
+    if (res.success) {
+      toast.success('URL이 삭제되었습니다.')
+      fetchRedirects()
+    } else {
+      toast.error(res.error || '삭제에 실패했습니다.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -88,7 +93,12 @@ export default function RedirectsPage() {
                 외부 앱의 콜백 URL을 등록하여 SSO 연동을 허용합니다
               </DialogDescription>
             </DialogHeader>
-            <RedirectForm onSuccess={() => setDialogOpen(false)} />
+            <RedirectForm
+              onSuccess={() => {
+                setDialogOpen(false)
+                fetchRedirects()
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -111,31 +121,45 @@ export default function RedirectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {redirects.map(redirect => (
-                <TableRow key={redirect.id}>
-                  <TableCell className="font-medium">{redirect.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <code className="bg-muted rounded px-2 py-0.5 text-xs">
-                        {redirect.url}
-                      </code>
-                      <ExternalLink className="text-muted-foreground h-3 w-3" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {redirect.createdAt}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                    >
-                      삭제
-                    </Button>
+              {redirects.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="text-muted-foreground text-center"
+                  >
+                    등록된 URL이 없습니다
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                redirects.map(redirect => (
+                  <TableRow key={redirect.id}>
+                    <TableCell className="font-medium">
+                      {redirect.name}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <code className="bg-muted rounded px-2 py-0.5 text-xs">
+                          {redirect.url}
+                        </code>
+                        <ExternalLink className="text-muted-foreground h-3 w-3" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(redirect.createdAt).toLocaleDateString('ko-KR')}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => handleDelete(redirect.id)}
+                      >
+                        삭제
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

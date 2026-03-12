@@ -19,7 +19,8 @@
       "mcp__shrimp-task-manager__split_tasks",
       "mcp__shrimp-task-manager__execute_task",
       "mcp__shrimp-task-manager__verify_task",
-      "Skill(git:commit)"
+      "Skill(git:commit)",
+      "mcp__shrimp-task-manager__plan_task"
     ],
     "deny": [],
     "ask": []

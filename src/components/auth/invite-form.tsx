@@ -2,8 +2,10 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Eye, EyeOff, Mail, Shield } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { acceptInviteSchema, type AcceptInviteInput } from '@/lib/schemas/auth'
 import {
@@ -27,10 +29,18 @@ import {
 interface InviteFormProps {
   email: string
   token: string
+  role?: string
 }
 
-export function InviteForm({ email, token }: InviteFormProps) {
+const roleLabels: Record<string, string> = {
+  ADMIN: '관리자',
+  USER: '일반 사용자',
+}
+
+export function InviteForm({ email, token, role }: InviteFormProps) {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const form = useForm<AcceptInviteInput>({
     resolver: zodResolver(acceptInviteSchema),
@@ -41,9 +51,26 @@ export function InviteForm({ email, token }: InviteFormProps) {
     },
   })
 
-  const onSubmit = (data: AcceptInviteInput) => {
-    // Phase 6에서 API 연동 예정
-    console.log('초대 수락 데이터:', { ...data, token })
+  const onSubmit = async (data: AcceptInviteInput) => {
+    try {
+      const res = await fetch(`/api/invite/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const result = await res.json()
+
+      if (!result.success) {
+        toast.error(result.error || '계정 생성에 실패했습니다.')
+        return
+      }
+
+      toast.success('계정이 성공적으로 생성되었습니다!')
+      const redirectUrl = result.data?.redirectUrl
+      router.push(redirectUrl?.startsWith('/') ? redirectUrl : '/dashboard')
+    } catch {
+      toast.error('서버 연결에 실패했습니다.')
+    }
   }
 
   return (
@@ -53,13 +80,28 @@ export function InviteForm({ email, token }: InviteFormProps) {
           계정 생성
         </CardTitle>
         <CardDescription className="text-center">
-          초대받은 이메일로 계정을 생성합니다
+          초대받은 이메일로 새 계정을 등록합니다
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="bg-muted mb-4 rounded-md p-3 text-sm">
-          초대된 이메일: <strong>{email}</strong>
+        {/* 초대 정보 */}
+        <div className="bg-muted mb-6 space-y-2 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Mail className="text-muted-foreground h-4 w-4" />
+            <span className="text-muted-foreground">이메일</span>
+            <span className="ml-auto font-medium">{email}</span>
+          </div>
+          {role && (
+            <div className="flex items-center gap-2 text-sm">
+              <Shield className="text-muted-foreground h-4 w-4" />
+              <span className="text-muted-foreground">역할</span>
+              <span className="ml-auto font-medium">
+                {roleLabels[role] || role}
+              </span>
+            </div>
+          )}
         </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -69,7 +111,11 @@ export function InviteForm({ email, token }: InviteFormProps) {
                 <FormItem>
                   <FormLabel>이름</FormLabel>
                   <FormControl>
-                    <Input placeholder="이름을 입력하세요" {...field} />
+                    <Input
+                      placeholder="이름을 입력하세요"
+                      autoComplete="name"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -86,7 +132,7 @@ export function InviteForm({ email, token }: InviteFormProps) {
                     <div className="relative">
                       <Input
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="8자 이상"
+                        placeholder="8자 이상 입력하세요"
                         autoComplete="new-password"
                         className="pr-10"
                         {...field}
@@ -118,12 +164,30 @@ export function InviteForm({ email, token }: InviteFormProps) {
                 <FormItem>
                   <FormLabel>비밀번호 확인</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="비밀번호를 다시 입력하세요"
-                      autoComplete="new-password"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="비밀번호를 다시 입력하세요"
+                        autoComplete="new-password"
+                        className="pr-10"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,7 +202,7 @@ export function InviteForm({ email, token }: InviteFormProps) {
               {form.formState.isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  생성 중...
+                  계정 생성 중...
                 </>
               ) : (
                 '계정 생성'

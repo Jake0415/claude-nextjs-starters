@@ -3,7 +3,8 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Send } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 import { smtpConfigSchema, type SmtpConfigInput } from '@/lib/schemas/auth'
 import {
@@ -19,9 +20,11 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { apiGet, apiPut, apiPost } from '@/lib/api/client'
 
 export function SmtpForm() {
   const [testEmail, setTestEmail] = useState('')
+  const [testing, setTesting] = useState(false)
 
   const form = useForm<SmtpConfigInput>({
     resolver: zodResolver(smtpConfigSchema),
@@ -36,14 +39,49 @@ export function SmtpForm() {
     },
   })
 
-  const onSubmit = (data: SmtpConfigInput) => {
-    // Phase 6에서 API 연동 예정
-    console.log('SMTP 설정 데이터:', data)
+  // 기존 설정 로드
+  useEffect(() => {
+    apiGet<{
+      host: string
+      port: number
+      username: string
+      secure: boolean
+      fromName: string
+      fromEmail: string
+    }>('/api/admin/smtp').then(res => {
+      if (res.success && res.data) {
+        form.reset({
+          host: res.data.host,
+          port: res.data.port,
+          username: res.data.username,
+          password: '', // 비밀번호는 보안상 다시 입력
+          secure: res.data.secure,
+          fromName: res.data.fromName,
+          fromEmail: res.data.fromEmail,
+        })
+      }
+    })
+  }, [form])
+
+  const onSubmit = async (data: SmtpConfigInput) => {
+    const res = await apiPut('/api/admin/smtp', data)
+    if (res.success) {
+      toast.success('SMTP 설정이 저장되었습니다.')
+    } else {
+      toast.error(res.error || 'SMTP 설정 저장에 실패했습니다.')
+    }
   }
 
-  const handleTestSend = () => {
-    // Phase 6에서 API 연동 예정
-    console.log('테스트 메일 발송:', testEmail)
+  const handleTestSend = async () => {
+    if (!testEmail) return
+    setTesting(true)
+    const res = await apiPost('/api/admin/smtp/test', { email: testEmail })
+    setTesting(false)
+    if (res.success) {
+      toast.success('테스트 메일이 발송되었습니다.')
+    } else {
+      toast.error(res.error || '테스트 메일 발송에 실패했습니다.')
+    }
   }
 
   return (
@@ -203,9 +241,13 @@ export function SmtpForm() {
           <Button
             variant="outline"
             onClick={handleTestSend}
-            disabled={!testEmail}
+            disabled={!testEmail || testing}
           >
-            <Send className="mr-2 h-4 w-4" />
+            {testing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
             테스트 발송
           </Button>
         </div>

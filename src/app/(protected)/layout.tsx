@@ -1,7 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -12,20 +13,15 @@ import {
   LogOut,
   Menu,
   HelpCircle,
+  Loader2,
 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
-
-// 더미 사용자 (Phase 6에서 API 연동으로 교체)
-const DUMMY_USER = {
-  id: '1',
-  name: 'Admin',
-  email: 'admin@company.com',
-  role: 'SUPER_ADMIN' as const,
-}
+import { useSession } from '@/hooks/use-session'
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
@@ -101,16 +97,15 @@ export default function ProtectedLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user, loading, logout } = useSession()
 
-  // Phase 6에서 API 세션으로 교체
-  const user = DUMMY_USER
-
-  const handleLogout = async () => {
-    // Phase 6에서 API 연동 예정
-    console.log('로그아웃')
-    router.push('/login')
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -119,12 +114,31 @@ export default function ProtectedLayout({
       <aside className="bg-sidebar text-sidebar-foreground hidden w-64 flex-shrink-0 md:block">
         <div className="flex h-full flex-col">
           <div className="border-sidebar-border border-b p-6">
-            <Link href="/dashboard" className="text-xl font-bold text-white">
-              MHSSO AI
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <Image
+                src="/logo.svg"
+                alt="MHSSO AI"
+                width={28}
+                height={28}
+                className="flex-shrink-0"
+              />
+              <span className="text-sidebar-foreground text-xl font-bold">
+                MHSSO AI
+              </span>
             </Link>
-            <p className="mt-1 text-sm opacity-60">
-              {user.name} ({user.role})
-            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                {user.profileImage ? (
+                  <AvatarImage src={user.profileImage} alt={user.name} />
+                ) : null}
+                <AvatarFallback className="text-xs">
+                  {user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-sidebar-foreground/60 text-sm">
+                {user.name} ({user.role})
+              </p>
+            </div>
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
@@ -145,7 +159,7 @@ export default function ProtectedLayout({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleLogout}
+                onClick={logout}
                 className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -159,8 +173,9 @@ export default function ProtectedLayout({
       {/* 모바일 헤더 + 사이드바 */}
       <div className="flex flex-1 flex-col">
         <header className="bg-card border-border flex items-center justify-between border-b p-4 md:hidden">
-          <Link href="/dashboard" className="text-lg font-bold">
-            MHSSO AI
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="MHSSO AI" width={24} height={24} />
+            <span className="text-lg font-bold">MHSSO AI</span>
           </Link>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -174,10 +189,30 @@ export default function ProtectedLayout({
             >
               <div className="flex h-full flex-col">
                 <div className="border-sidebar-border border-b p-6">
-                  <p className="text-xl font-bold text-white">MHSSO AI</p>
-                  <p className="mt-1 text-sm opacity-60">
-                    {user.name} ({user.role})
-                  </p>
+                  <div className="flex items-center gap-2.5">
+                    <Image
+                      src="/logo.svg"
+                      alt="MHSSO AI"
+                      width={28}
+                      height={28}
+                    />
+                    <span className="text-sidebar-foreground text-xl font-bold">
+                      MHSSO AI
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Avatar className="h-7 w-7">
+                      {user.profileImage ? (
+                        <AvatarImage src={user.profileImage} alt={user.name} />
+                      ) : null}
+                      <AvatarFallback className="text-xs">
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="text-sidebar-foreground/60 text-sm">
+                      {user.name} ({user.role})
+                    </p>
+                  </div>
                 </div>
                 <nav className="flex-1 space-y-1 p-4">
                   <NavItems
@@ -201,7 +236,7 @@ export default function ProtectedLayout({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleLogout}
+                      onClick={logout}
                       className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     >
                       <LogOut className="mr-2 h-4 w-4" />

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { loginSchema, type LoginInput } from '@/lib/schemas/auth'
 import {
@@ -39,9 +40,35 @@ export function LoginForm() {
     },
   })
 
-  const onSubmit = async (_data: LoginInput) => {
-    // TODO: DB 연결 후 API 연동으로 교체
-    router.push('/dashboard')
+  const onSubmit = async (data: LoginInput) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...data, redirectUrl }),
+      })
+      const result = await res.json()
+
+      if (!result.success) {
+        toast.error(result.error || '로그인에 실패했습니다.')
+        return
+      }
+
+      toast.success('로그인 성공')
+
+      // 외부 앱 SSO 리다이렉트
+      if (result.data.code && result.data.redirectUrl !== '/dashboard') {
+        const url = new URL(result.data.redirectUrl)
+        url.searchParams.set('code', result.data.code)
+        window.location.href = url.toString()
+        return
+      }
+
+      router.push(result.data.redirectUrl || '/dashboard')
+    } catch {
+      toast.error('서버 연결에 실패했습니다.')
+    }
   }
 
   return (

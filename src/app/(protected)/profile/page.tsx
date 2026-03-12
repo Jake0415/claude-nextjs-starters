@@ -1,4 +1,6 @@
-import { Metadata } from 'next'
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -15,48 +17,61 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Loader2, AlertTriangle } from 'lucide-react'
 import { PasswordForm } from '@/components/profile/password-form'
+import { ProfileImageUpload } from '@/components/profile/profile-image-upload'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { useSession } from '@/hooks/use-session'
+import { apiGet, apiPost } from '@/lib/api/client'
+import { toast } from 'sonner'
 
-export const metadata: Metadata = {
-  title: '내 정보 - MHSSO',
-  description: '내 정보 확인 및 비밀번호 변경',
+interface LoginLogData {
+  id: string
+  action: string
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: string
 }
-
-// 더미 사용자 정보
-const user = {
-  name: 'Admin',
-  email: 'admin@company.com',
-  role: 'SUPER_ADMIN',
-  createdAt: '2026-03-01',
-  lastLogin: '2026-03-06 10:30',
-}
-
-// 더미 내 로그인 기록
-const myLoginLogs = [
-  {
-    id: '1',
-    success: true,
-    ip: '192.168.1.5',
-    userAgent: 'Chrome 130 / Windows',
-    createdAt: '2026-03-06 10:30',
-  },
-  {
-    id: '2',
-    success: true,
-    ip: '192.168.1.5',
-    userAgent: 'Chrome 130 / Windows',
-    createdAt: '2026-03-05 09:00',
-  },
-  {
-    id: '3',
-    success: false,
-    ip: '10.0.0.99',
-    userAgent: 'Firefox 125 / Linux',
-    createdAt: '2026-03-04 22:15',
-  },
-]
 
 export default function ProfilePage() {
+  const { user, refreshSession, logout } = useSession()
+  const [loginLogs, setLoginLogs] = useState<LoginLogData[]>([])
+  const [logsLoading, setLogsLoading] = useState(true)
+  const [deactivating, setDeactivating] = useState(false)
+
+  const handleDeactivate = useCallback(async () => {
+    setDeactivating(true)
+    const res = await apiPost('/api/user/deactivate')
+    if (res.success) {
+      toast.success('계정이 비활성화되었습니다.')
+      await logout()
+    } else {
+      toast.error(res.error || '계정 비활성화에 실패했습니다.')
+      setDeactivating(false)
+    }
+  }, [logout])
+
+  useEffect(() => {
+    apiGet<{ logs: LoginLogData[] }>('/api/user/login-logs?limit=10')
+      .then(res => {
+        if (res.success && res.data) setLoginLogs(res.data.logs)
+      })
+      .finally(() => setLogsLoading(false))
+  }, [])
+
+  if (!user) return null
+
   return (
     <div className="space-y-6">
       <div>
@@ -72,7 +87,12 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>계정 정보</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <ProfileImageUpload
+              currentImage={user.profileImage}
+              userName={user.name}
+              onUpdate={refreshSession}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-muted-foreground text-sm">이름</p>
@@ -85,14 +105,6 @@ export default function ProfilePage() {
               <div>
                 <p className="text-muted-foreground text-sm">역할</p>
                 <Badge>{user.role}</Badge>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm">가입일</p>
-                <p className="font-medium">{user.createdAt}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-muted-foreground text-sm">최근 로그인</p>
-                <p className="font-medium">{user.lastLogin}</p>
               </div>
             </div>
           </CardContent>
@@ -119,32 +131,119 @@ export default function ProfilePage() {
           <CardDescription>최근 로그인 활동</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>상태</TableHead>
-                <TableHead>IP</TableHead>
-                <TableHead>브라우저</TableHead>
-                <TableHead>시간</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {myLoginLogs.map(log => (
-                <TableRow key={log.id}>
-                  <TableCell>
-                    <Badge variant={log.success ? 'default' : 'destructive'}>
-                      {log.success ? '성공' : '실패'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{log.ip}</TableCell>
-                  <TableCell className="text-sm">{log.userAgent}</TableCell>
-                  <TableCell className="text-sm">{log.createdAt}</TableCell>
+          {logsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>상태</TableHead>
+                  <TableHead>IP</TableHead>
+                  <TableHead>브라우저</TableHead>
+                  <TableHead>시간</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loginLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-muted-foreground text-center"
+                    >
+                      로그인 기록이 없습니다
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  loginLogs.map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            log.action === 'LOGIN_SUCCESS'
+                              ? 'default'
+                              : log.action === 'LOGOUT'
+                                ? 'secondary'
+                                : 'destructive'
+                          }
+                        >
+                          {log.action === 'LOGIN_SUCCESS'
+                            ? '성공'
+                            : log.action === 'LOGOUT'
+                              ? '로그아웃'
+                              : '실패'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {log.ipAddress || '-'}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-sm">
+                        {log.userAgent || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {new Date(log.createdAt).toLocaleString('ko-KR')}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      {/* 계정 비활성화 (SUPER_ADMIN 제외) */}
+      {user.role !== 'SUPER_ADMIN' && (
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              계정 비활성화
+            </CardTitle>
+            <CardDescription>
+              계정을 비활성화하면 로그인이 불가능합니다. 관리자에게 문의하여
+              다시 활성화할 수 있습니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={deactivating}>
+                  {deactivating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    '계정 비활성화'
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    계정을 비활성화하시겠습니까?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    계정이 비활성화되면 즉시 로그아웃되며, 이후 로그인이
+                    불가능합니다. 다시 활성화하려면 관리자에게 문의해야 합니다.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>취소</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeactivate}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    비활성화
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

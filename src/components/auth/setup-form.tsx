@@ -2,8 +2,10 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { setupSchema, type SetupInput } from '@/lib/schemas/auth'
 import {
@@ -25,6 +27,7 @@ import {
 } from '@/components/ui/card'
 
 export function SetupForm() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<SetupInput>({
@@ -37,9 +40,28 @@ export function SetupForm() {
     },
   })
 
-  const onSubmit = (data: SetupInput) => {
-    // Phase 6에서 API 연동 예정
-    console.log('초기 설정 데이터:', data)
+  const onSubmit = async (data: SetupInput) => {
+    try {
+      // 1. Super Admin 계정 생성
+      const setupRes = await fetch('/api/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      })
+      const setupResult = await setupRes.json()
+
+      if (!setupResult.success) {
+        toast.error(setupResult.error || '초기 설정에 실패했습니다.')
+        return
+      }
+
+      // setup API에서 세션 쿠키가 자동 설정됨
+      toast.success('Super Admin 계정을 생성했습니다.')
+      router.push('/dashboard')
+    } catch {
+      toast.error('서버 연결에 실패했습니다.')
+    }
   }
 
   return (

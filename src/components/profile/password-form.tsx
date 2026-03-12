@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import {
   changePasswordSchema,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { apiPatch } from '@/lib/api/client'
 
 export function PasswordForm() {
   const form = useForm<ChangePasswordInput>({
@@ -29,10 +31,14 @@ export function PasswordForm() {
     },
   })
 
-  const onSubmit = (data: ChangePasswordInput) => {
-    // Phase 6에서 API 연동 예정
-    console.log('비밀번호 변경 데이터:', data)
-    form.reset()
+  const onSubmit = async (data: ChangePasswordInput) => {
+    const res = await apiPatch('/api/user/password', data)
+    if (res.success) {
+      toast.success('비밀번호가 변경되었습니다.')
+      form.reset()
+    } else {
+      toast.error(res.error || '비밀번호 변경에 실패했습니다.')
+    }
   }
 
   return (

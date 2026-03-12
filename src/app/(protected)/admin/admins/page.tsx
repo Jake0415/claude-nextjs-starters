@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -26,117 +26,95 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ShieldPlus } from 'lucide-react'
+import { UserPlus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { apiGet, apiPatch } from '@/lib/api/client'
+import { InviteUserForm } from '@/components/admin/invite-user-form'
 
-// 더미 Admin 목록
-const admins = [
-  {
-    id: '1',
-    name: 'Super Admin',
-    email: 'admin@company.com',
-    role: 'SUPER_ADMIN',
-    isActive: true,
-    createdAt: '2026-03-01',
-  },
-  {
-    id: '2',
-    name: '박관리',
-    email: 'admin2@company.com',
-    role: 'ADMIN',
-    isActive: true,
-    createdAt: '2026-03-03',
-  },
-  {
-    id: '3',
-    name: '최관리',
-    email: 'admin3@company.com',
-    role: 'ADMIN',
-    isActive: false,
-    createdAt: '2026-02-15',
-  },
-]
+interface AdminData {
+  id: string
+  name: string
+  email: string
+  role: string
+  isActive: boolean
+  createdAt: string
+}
 
 export default function AdminsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [admins, setAdmins] = useState<AdminData[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    // Phase 6에서 API 연동 예정
-    console.log('Admin 등록:', Object.fromEntries(formData))
-    setDialogOpen(false)
+  const fetchAdmins = useCallback(async () => {
+    const res = await apiGet<AdminData[]>('/api/admin/admins')
+    if (res.success && res.data) setAdmins(res.data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchAdmins()
+  }, [fetchAdmins])
+
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    const res = await apiPatch('/api/admin/admins', { id, isActive: !isActive })
+    if (res.success) {
+      toast.success(isActive ? '비활성화되었습니다.' : '활성화되었습니다.')
+      fetchAdmins()
+    } else {
+      toast.error(res.error || '상태 변경에 실패했습니다.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Admin 관리</h1>
+          <h1 className="text-2xl font-bold">계정 관리</h1>
           <p className="text-muted-foreground text-sm">
-            관리자 계정 목록 및 등록 (Super Admin 전용)
+            계정 초대 및 관리 (Super Admin 전용)
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <ShieldPlus className="mr-2 h-4 w-4" />
-              Admin 등록
+              <UserPlus className="mr-2 h-4 w-4" />
+              계정 초대
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Admin 등록</DialogTitle>
+              <DialogTitle>계정 초대</DialogTitle>
               <DialogDescription>
-                새로운 관리자 계정을 직접 생성합니다
+                이메일로 초대장을 발송합니다. 초대받은 사용자가 직접 비밀번호를
+                설정합니다.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="admin-name">이름</Label>
-                <Input
-                  id="admin-name"
-                  name="name"
-                  placeholder="관리자 이름"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-email">이메일</Label>
-                <Input
-                  id="admin-email"
-                  name="email"
-                  type="email"
-                  placeholder="admin@company.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-password">비밀번호</Label>
-                <Input
-                  id="admin-password"
-                  name="password"
-                  type="password"
-                  placeholder="8자 이상"
-                  required
-                  minLength={8}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Admin 등록
-              </Button>
-            </form>
+            <InviteUserForm
+              showRoleSelect={true}
+              availableRoles={['ADMIN', 'USER']}
+              defaultRole="ADMIN"
+              apiEndpoint="/api/admin/admins"
+              onSuccess={() => {
+                setDialogOpen(false)
+                fetchAdmins()
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Admin 목록</CardTitle>
-          <CardDescription>
-            등록된 관리자 계정 ({admins.length}명)
-          </CardDescription>
+          <CardTitle>계정 목록</CardTitle>
+          <CardDescription>등록된 계정 ({admins.length}명)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -151,38 +129,54 @@ export default function AdminsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {admins.map(admin => (
-                <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.name}</TableCell>
-                  <TableCell>{admin.email}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        admin.role === 'SUPER_ADMIN' ? 'default' : 'secondary'
-                      }
-                    >
-                      {admin.role}
-                    </Badge>
+              {admins.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-muted-foreground text-center"
+                  >
+                    등록된 계정이 없습니다
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={admin.isActive ? 'default' : 'destructive'}>
-                      {admin.isActive ? '활성' : '비활성'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{admin.createdAt}</TableCell>
-                  <TableCell>
-                    {admin.role !== 'SUPER_ADMIN' && admin.isActive && (
+                </TableRow>
+              ) : (
+                admins.map(admin => (
+                  <TableRow key={admin.id}>
+                    <TableCell className="font-medium">{admin.name}</TableCell>
+                    <TableCell>{admin.email}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          admin.role === 'ADMIN' ? 'default' : 'secondary'
+                        }
+                      >
+                        {admin.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={admin.isActive ? 'default' : 'destructive'}
+                      >
+                        {admin.isActive ? '활성' : '비활성'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(admin.createdAt).toLocaleDateString('ko-KR')}
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-destructive"
+                        className={admin.isActive ? 'text-destructive' : ''}
+                        onClick={() =>
+                          handleToggleActive(admin.id, admin.isActive)
+                        }
                       >
-                        비활성화
+                        {admin.isActive ? '비활성화' : '활성화'}
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

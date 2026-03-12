@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
@@ -27,72 +27,30 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { InviteUserForm } from '@/components/admin/invite-user-form'
+import { apiGet, apiPost, apiPatch } from '@/lib/api/client'
+import { useSession } from '@/hooks/use-session'
 
-// 더미 사용자 목록
-const users = [
-  {
-    id: '1',
-    name: '김철수',
-    email: 'chulsu@company.com',
-    role: 'USER',
-    isActive: true,
-    createdAt: '2026-03-05',
-  },
-  {
-    id: '2',
-    name: '이영희',
-    email: 'younghee@company.com',
-    role: 'USER',
-    isActive: true,
-    createdAt: '2026-03-04',
-  },
-  {
-    id: '3',
-    name: '박비활성',
-    email: 'inactive@company.com',
-    role: 'USER',
-    isActive: false,
-    createdAt: '2026-02-20',
-  },
-]
+interface UserData {
+  id: string
+  name: string
+  email: string
+  role: string
+  isActive: boolean
+  createdAt: string
+}
 
-// 더미 초대 현황
-const invitations = [
-  {
-    id: '1',
-    email: 'newuser1@company.com',
-    status: 'PENDING',
-    invitedBy: 'admin@company.com',
-    createdAt: '2026-03-06',
-    expiresAt: '2026-03-08',
-  },
-  {
-    id: '2',
-    email: 'newuser2@company.com',
-    status: 'PENDING',
-    invitedBy: 'admin@company.com',
-    createdAt: '2026-03-05',
-    expiresAt: '2026-03-07',
-  },
-  {
-    id: '3',
-    email: 'olduser@company.com',
-    status: 'ACCEPTED',
-    invitedBy: 'admin@company.com',
-    createdAt: '2026-03-01',
-    expiresAt: '2026-03-03',
-  },
-  {
-    id: '4',
-    email: 'expired@company.com',
-    status: 'EXPIRED',
-    invitedBy: 'admin@company.com',
-    createdAt: '2026-02-25',
-    expiresAt: '2026-02-27',
-  },
-]
+interface InvitationData {
+  id: string
+  email: string
+  role: string
+  status: string
+  createdAt: string
+  expiresAt: string
+  invitedBy: { name: string; email: string }
+}
 
 const statusMap: Record<
   string,
@@ -108,7 +66,66 @@ const statusMap: Record<
 }
 
 export default function UsersPage() {
+  const { user: sessionUser } = useSession()
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [users, setUsers] = useState<UserData[]>([])
+  const [invitations, setInvitations] = useState<InvitationData[]>([])
+  const [loading, setLoading] = useState(true)
+  const isSuperAdmin = sessionUser?.role === 'SUPER_ADMIN'
+
+  const fetchData = useCallback(async () => {
+    const [usersRes, invRes] = await Promise.all([
+      apiGet<{ users: UserData[] }>('/api/admin/users'),
+      apiGet<InvitationData[]>('/api/admin/invitations'),
+    ])
+    if (usersRes.success && usersRes.data) setUsers(usersRes.data.users)
+    if (invRes.success && invRes.data) setInvitations(invRes.data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const handleResend = async (id: string) => {
+    const res = await apiPost(`/api/admin/invitations/${id}/resend`)
+    if (res.success) {
+      toast.success('초대가 재발송되었습니다.')
+      fetchData()
+    } else {
+      toast.error(res.error || '재발송에 실패했습니다.')
+    }
+  }
+
+  const handleCancel = async (id: string) => {
+    if (!confirm('초대를 취소하시겠습니까?')) return
+
+    const res = await apiPost(`/api/admin/invitations/${id}/cancel`)
+    if (res.success) {
+      toast.success('초대가 취소되었습니다.')
+      fetchData()
+    } else {
+      toast.error(res.error || '취소에 실패했습니다.')
+    }
+  }
+
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    const res = await apiPatch('/api/admin/users', { id, isActive: !isActive })
+    if (res.success) {
+      toast.success(isActive ? '비활성화되었습니다.' : '활성화되었습니다.')
+      fetchData()
+    } else {
+      toast.error(res.error || '상태 변경에 실패했습니다.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -134,7 +151,15 @@ export default function UsersPage() {
                 통해 계정을 생성할 수 있습니다.
               </DialogDescription>
             </DialogHeader>
-            <InviteUserForm onSuccess={() => setInviteOpen(false)} />
+            <InviteUserForm
+              showRoleSelect
+              availableRoles={isSuperAdmin ? ['USER', 'ADMIN'] : ['USER']}
+              defaultRole="USER"
+              onSuccess={() => {
+                setInviteOpen(false)
+                fetchData()
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -162,28 +187,60 @@ export default function UsersPage() {
                     <TableHead>역할</TableHead>
                     <TableHead>상태</TableHead>
                     <TableHead>가입일</TableHead>
+                    {isSuperAdmin && <TableHead>작업</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.isActive ? 'default' : 'destructive'}
-                        >
-                          {user.isActive ? '활성' : '비활성'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {user.createdAt}
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={isSuperAdmin ? 6 : 5}
+                        className="text-muted-foreground text-center"
+                      >
+                        등록된 사용자가 없습니다
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    users.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          {user.name}
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={user.isActive ? 'default' : 'destructive'}
+                          >
+                            {user.isActive ? '활성' : '비활성'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(user.createdAt).toLocaleDateString('ko-KR')}
+                        </TableCell>
+                        {isSuperAdmin && (
+                          <TableCell>
+                            {user.role !== 'SUPER_ADMIN' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={
+                                  user.isActive ? 'text-destructive' : ''
+                                }
+                                onClick={() =>
+                                  handleToggleActive(user.id, user.isActive)
+                                }
+                              >
+                                {user.isActive ? '비활성화' : '활성화'}
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -203,6 +260,7 @@ export default function UsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>이메일</TableHead>
+                    <TableHead>역할</TableHead>
                     <TableHead>상태</TableHead>
                     <TableHead>초대자</TableHead>
                     <TableHead>발송일</TableHead>
@@ -211,49 +269,87 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invitations.map(inv => {
-                    const status = statusMap[inv.status]
-                    return (
-                      <TableRow key={inv.id}>
-                        <TableCell className="font-medium">
-                          {inv.email}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {inv.invitedBy}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {inv.createdAt}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {inv.expiresAt}
-                        </TableCell>
-                        <TableCell>
-                          {inv.status === 'PENDING' && (
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm">
-                                재발송
-                              </Button>
+                  {invitations.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className="text-muted-foreground text-center"
+                      >
+                        발송된 초대가 없습니다
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    invitations.map(inv => {
+                      const status = statusMap[inv.status] || {
+                        label: inv.status,
+                        variant: 'secondary' as const,
+                      }
+                      return (
+                        <TableRow key={inv.id}>
+                          <TableCell className="font-medium">
+                            {inv.email}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                inv.role === 'ADMIN' ? 'default' : 'secondary'
+                              }
+                            >
+                              {inv.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={status.variant}>
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {inv.invitedBy.email}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(inv.createdAt).toLocaleDateString(
+                              'ko-KR'
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(inv.expiresAt).toLocaleDateString(
+                              'ko-KR'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {inv.status === 'PENDING' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResend(inv.id)}
+                                >
+                                  재발송
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive"
+                                  onClick={() => handleCancel(inv.id)}
+                                >
+                                  취소
+                                </Button>
+                              </div>
+                            )}
+                            {inv.status === 'EXPIRED' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-destructive"
+                                onClick={() => handleResend(inv.id)}
                               >
-                                취소
+                                재발송
                               </Button>
-                            </div>
-                          )}
-                          {inv.status === 'EXPIRED' && (
-                            <Button variant="ghost" size="sm">
-                              재발송
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
