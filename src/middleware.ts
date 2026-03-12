@@ -18,24 +18,33 @@ export async function middleware(request: NextRequest) {
 
   // /login 페이지: 세션이 있으면 대시보드로
   if (pathname === '/login') {
+    // 외부 앱 SSO 요청(redirect_url 포함)이면 로그인 페이지 표시
+    const redirectUrl = request.nextUrl.searchParams.get('redirect_url')
+    if (redirectUrl) {
+      return NextResponse.next()
+    }
     if (sessionId) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return NextResponse.next()
   }
 
+  // /invite 페이지: 공개 페이지로 허용
+  if (pathname.startsWith('/invite')) {
+    return NextResponse.next()
+  }
+
   // 보호된 경로: 세션 없으면 로그인으로
-  // TODO: DB 연결 후 세션 검증 활성화
-  // if (
-  //   pathname.startsWith('/dashboard') ||
-  //   pathname.startsWith('/profile') ||
-  //   pathname.startsWith('/admin')
-  // ) {
-  //   if (!sessionId) {
-  //     return NextResponse.redirect(new URL('/login', request.url))
-  //   }
-  //   return NextResponse.next()
-  // }
+  if (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/admin')
+  ) {
+    if (!sessionId) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    return NextResponse.next()
+  }
 
   return NextResponse.next()
 }
@@ -47,5 +56,6 @@ export const config = {
     '/dashboard/:path*',
     '/profile/:path*',
     '/admin/:path*',
+    '/invite/:path*',
   ],
 }

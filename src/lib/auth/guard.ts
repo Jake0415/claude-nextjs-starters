@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAccessToken } from './jwt'
+import { findValidSession, SSO_SESSION_COOKIE_NAME } from './session'
 import type { JwtAccessPayload, UserRole } from '@/lib/types/auth'
 
 export class AuthError extends Error {
@@ -15,17 +16,33 @@ export class AuthError extends Error {
 export async function authenticateRequest(
   request: NextRequest
 ): Promise<JwtAccessPayload> {
+  // 1. Bearer 토큰 우선 확인
   const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    throw new AuthError('인증 토큰이 필요합니다.')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    try {
+      return await verifyAccessToken(token)
+    } catch {
+      throw new AuthError('유효하지 않거나 만료된 토큰입니다.')
+    }
   }
 
-  const token = authHeader.slice(7)
-  try {
-    return await verifyAccessToken(token)
-  } catch {
-    throw new AuthError('유효하지 않거나 만료된 토큰입니다.')
+  // 2. sso_session 쿠키 fallback (내부 대시보드용)
+  const sessionId = request.cookies.get(SSO_SESSION_COOKIE_NAME)?.value
+  if (sessionId) {
+    const session = await findValidSession(sessionId)
+    if (session) {
+      return {
+        sub: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role as UserRole,
+        type: 'access',
+      }
+    }
   }
+
+  throw new AuthError('인증 토큰이 필요합니다.')
 }
 
 export async function requireRole(

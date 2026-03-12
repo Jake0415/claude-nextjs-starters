@@ -50,3 +50,24 @@ export async function POST(request: NextRequest) {
     return handleAuthError(error)
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireRole(request, [UserRole.SUPER_ADMIN, UserRole.ADMIN])
+
+    const { searchParams } = request.nextUrl
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'ID가 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    await prisma.allowedRedirect.delete({ where: { id } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleAuthError(error)
+  }
+}

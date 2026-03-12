@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
+        profileImage: true,
       },
     })
 

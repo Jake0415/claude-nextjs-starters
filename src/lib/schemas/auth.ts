@@ -111,11 +111,19 @@ export const acceptInviteSchema = z
 
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>
 
+export const toggleActiveSchema = z.object({
+  id: z.string().min(1, 'ID가 필요합니다.'),
+  isActive: z.boolean(),
+})
+
+export type ToggleActiveInput = z.infer<typeof toggleActiveSchema>
+
 export const inviteUserSchema = z.object({
   email: z
     .string()
     .min(1, '이메일을 입력해 주세요.')
     .email('올바른 이메일 주소를 입력해 주세요.'),
+  role: z.enum(['USER', 'ADMIN']),
 })
 
 export type InviteUserInput = z.infer<typeof inviteUserSchema>

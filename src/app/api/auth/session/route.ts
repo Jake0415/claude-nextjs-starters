@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
       name: session.user.name,
       email: session.user.email,
       role: session.user.role,
+      profileImage: session.user.profileImage,
     },
   })
 }

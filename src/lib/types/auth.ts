@@ -36,6 +36,7 @@ export interface MeResponseData {
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
+  profileImage: string | null
 }
 
 export interface JwtAccessPayload {
@@ -58,4 +59,5 @@ export interface StatsData {
   totalAdmins: number
   totalApps: number
   activeSessions: number
+  pendingInvitations: number
 }
