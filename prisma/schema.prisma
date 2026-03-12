@@ -18,11 +18,14 @@ model User {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
   lastLoginAt    DateTime?      @map("last_login_at")
+  profileImage   String?        @map("profile_image")
   createdBy      User?          @relation("CreatedByAdmin", fields: [createdById], references: [id])
   createdUsers   User[]         @relation("CreatedByAdmin")
   refreshTokens  RefreshToken[]
   ssoSessions    SsoSession[]
   loginLogs      LoginLog[]
+  invitations    Invitation[]   @relation("InvitedByAdmin")
+  smtpConfigs    SmtpConfig[]   @relation("SmtpUpdatedBy")
 
   @@map("users")
 }
@@ -96,4 +99,40 @@ model LoginLog {
   @@index([createdAt])
   @@index([action])
   @@map("login_logs")
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique
+  role        String    @default("USER") // USER, ADMIN
+  status      String    @default("PENDING") // PENDING, ACCEPTED, CANCELLED, EXPIRED
+  invitedById String    @map("invited_by_id")
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  invitedBy   User      @relation("InvitedByAdmin", fields: [invitedById], references: [id])
+
+  @@index([token])
+  @@index([email])
+  @@index([status])
+  @@map("invitations")
+}
+
+model SmtpConfig {
+  id          String   @id @default(cuid())
+  host        String
+  port        Int
+  username    String
+  password    String
+  secure      Boolean  @default(true)
+  fromName    String   @map("from_name")
+  fromEmail   String   @map("from_email")
+  updatedById String   @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   User     @relation("SmtpUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("smtp_config")
 }

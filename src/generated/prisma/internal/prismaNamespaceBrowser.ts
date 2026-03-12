@@ -60,6 +60,8 @@ export const ModelName = {
   AuthorizationCode: 'AuthorizationCode',
   AllowedRedirect: 'AllowedRedirect',
   LoginLog: 'LoginLog',
+  Invitation: 'Invitation',
+  SmtpConfig: 'SmtpConfig',
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -89,6 +91,7 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastLoginAt: 'lastLoginAt',
+  profileImage: 'profileImage',
 } as const
 
 export type UserScalarFieldEnum =
@@ -159,6 +162,39 @@ export const LoginLogScalarFieldEnum = {
 
 export type LoginLogScalarFieldEnum =
   (typeof LoginLogScalarFieldEnum)[keyof typeof LoginLogScalarFieldEnum]
+
+export const InvitationScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  token: 'token',
+  role: 'role',
+  status: 'status',
+  invitedById: 'invitedById',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type InvitationScalarFieldEnum =
+  (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+export const SmtpConfigScalarFieldEnum = {
+  id: 'id',
+  host: 'host',
+  port: 'port',
+  username: 'username',
+  password: 'password',
+  secure: 'secure',
+  fromName: 'fromName',
+  fromEmail: 'fromEmail',
+  updatedById: 'updatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type SmtpConfigScalarFieldEnum =
+  (typeof SmtpConfigScalarFieldEnum)[keyof typeof SmtpConfigScalarFieldEnum]
 
 export const SortOrder = {
   asc: 'asc',

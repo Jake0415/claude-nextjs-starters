@@ -418,6 +418,8 @@ export const ModelName = {
   AuthorizationCode: 'AuthorizationCode',
   AllowedRedirect: 'AllowedRedirect',
   LoginLog: 'LoginLog',
+  Invitation: 'Invitation',
+  SmtpConfig: 'SmtpConfig',
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -446,6 +448,8 @@ export type TypeMap<
       | 'authorizationCode'
       | 'allowedRedirect'
       | 'loginLog'
+      | 'invitation'
+      | 'smtpConfig'
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -905,6 +909,158 @@ export type TypeMap<
         }
       }
     }
+    Invitation: {
+      payload: Prisma.$InvitationPayload<ExtArgs>
+      fields: Prisma.InvitationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.InvitationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.InvitationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        findFirst: {
+          args: Prisma.InvitationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.InvitationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        findMany: {
+          args: Prisma.InvitationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>[]
+        }
+        create: {
+          args: Prisma.InvitationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        createMany: {
+          args: Prisma.InvitationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.InvitationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>[]
+        }
+        delete: {
+          args: Prisma.InvitationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        update: {
+          args: Prisma.InvitationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        deleteMany: {
+          args: Prisma.InvitationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.InvitationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.InvitationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>[]
+        }
+        upsert: {
+          args: Prisma.InvitationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvitationPayload>
+        }
+        aggregate: {
+          args: Prisma.InvitationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateInvitation>
+        }
+        groupBy: {
+          args: Prisma.InvitationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.InvitationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.InvitationCountArgs<ExtArgs>
+          result:
+            | runtime.Types.Utils.Optional<Prisma.InvitationCountAggregateOutputType>
+            | number
+        }
+      }
+    }
+    SmtpConfig: {
+      payload: Prisma.$SmtpConfigPayload<ExtArgs>
+      fields: Prisma.SmtpConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SmtpConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SmtpConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.SmtpConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SmtpConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        findMany: {
+          args: Prisma.SmtpConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>[]
+        }
+        create: {
+          args: Prisma.SmtpConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        createMany: {
+          args: Prisma.SmtpConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SmtpConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.SmtpConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        update: {
+          args: Prisma.SmtpConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.SmtpConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SmtpConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SmtpConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.SmtpConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SmtpConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.SmtpConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSmtpConfig>
+        }
+        groupBy: {
+          args: Prisma.SmtpConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SmtpConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SmtpConfigCountArgs<ExtArgs>
+          result:
+            | runtime.Types.Utils.Optional<Prisma.SmtpConfigCountAggregateOutputType>
+            | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -955,6 +1111,7 @@ export const UserScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastLoginAt: 'lastLoginAt',
+  profileImage: 'profileImage',
 } as const
 
 export type UserScalarFieldEnum =
@@ -1025,6 +1182,39 @@ export const LoginLogScalarFieldEnum = {
 
 export type LoginLogScalarFieldEnum =
   (typeof LoginLogScalarFieldEnum)[keyof typeof LoginLogScalarFieldEnum]
+
+export const InvitationScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  token: 'token',
+  role: 'role',
+  status: 'status',
+  invitedById: 'invitedById',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type InvitationScalarFieldEnum =
+  (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+export const SmtpConfigScalarFieldEnum = {
+  id: 'id',
+  host: 'host',
+  port: 'port',
+  username: 'username',
+  password: 'password',
+  secure: 'secure',
+  fromName: 'fromName',
+  fromEmail: 'fromEmail',
+  updatedById: 'updatedById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type SmtpConfigScalarFieldEnum =
+  (typeof SmtpConfigScalarFieldEnum)[keyof typeof SmtpConfigScalarFieldEnum]
 
 export const SortOrder = {
   asc: 'asc',
@@ -1105,6 +1295,22 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<
   $PrismaModel,
   'Int[]'
+>
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<
+  $PrismaModel,
+  'Float'
+>
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<
+  $PrismaModel,
+  'Float[]'
 >
 
 /**
@@ -1216,6 +1422,8 @@ export type GlobalOmitConfig = {
   authorizationCode?: Prisma.AuthorizationCodeOmit
   allowedRedirect?: Prisma.AllowedRedirectOmit
   loginLog?: Prisma.LoginLogOmit
+  invitation?: Prisma.InvitationOmit
+  smtpConfig?: Prisma.SmtpConfigOmit
 }
 
 /* Types for Logging */

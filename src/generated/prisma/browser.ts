@@ -46,3 +46,13 @@ export type AllowedRedirect = Prisma.AllowedRedirectModel
  *
  */
 export type LoginLog = Prisma.LoginLogModel
+/**
+ * Model Invitation
+ *
+ */
+export type Invitation = Prisma.InvitationModel
+/**
+ * Model SmtpConfig
+ *
+ */
+export type SmtpConfig = Prisma.SmtpConfigModel
